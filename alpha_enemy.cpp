@@ -47,6 +47,9 @@ static BOOL				g_Load = FALSE;
 
 static float anime_speed;		// エネミーのアニメーション速度用変数
 
+static BOOL	g_AlphaEnemy_Alpha;	// エネミー可視化切り替えスイッチ デバッグ用
+static BOOL	g_AlphaEnemy_Move;	// 移動スイッチ デバッグ用
+
 // リザルト画面用の線形補間データ
 static INTERPOLATION_DATA move_tbl[] = {	// pos, rot, scl, frame
 	{ XMFLOAT3(-400.0f, ALPHA_ENEMY_OFFSET_Y,  425.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.3f, 0.3f, 0.3f), 60 * 6 }, // 開始地点
@@ -112,6 +115,9 @@ HRESULT InitAlphaEnemy(void)
 		g_AlphaEnemy[0].tbl_size = sizeof(move_tbl) / sizeof(INTERPOLATION_DATA);	// 再生するアニメデータのレコード数をセット
 	}
 
+	g_AlphaEnemy_Alpha = FALSE;
+	g_AlphaEnemy_Move = FALSE;
+
 	g_Load = TRUE;
 	return S_OK;
 }
@@ -149,7 +155,25 @@ void UpdateAlphaEnemy(void)
 			{
 				PrintDebugProc("透明:move_time: %f\n", g_AlphaEnemy[i].move_time);
 
-				if (g_AlphaEnemy[i].tbl_adr != NULL)	// 線形補間を実行する？
+#ifdef _DEBUG
+				// デバッグ用エネミー移動スイッチ
+				g_AlphaEnemy_Move = g_AlphaEnemy_Move % 2;
+
+				if (GetKeyboardTrigger(DIK_2))
+				{
+					g_AlphaEnemy_Move++;
+				}
+
+				// デバッグ用 エネミー可視化切り替えスイッチ
+				g_AlphaEnemy_Alpha = g_AlphaEnemy_Alpha % 2;
+
+				if (GetKeyboardTrigger(DIK_3))
+				{
+					g_AlphaEnemy_Alpha++;
+				}
+#endif
+
+				if (g_AlphaEnemy[i].tbl_adr != NULL && g_AlphaEnemy_Move == FALSE)	// 線形補間を実行する？
 				{										// 線形補間の処理
 					// 移動処理
 					int		index = (int)g_AlphaEnemy[i].move_time;
@@ -229,20 +253,6 @@ void UpdateAlphaEnemy(void)
 				{
 					g_AlphaEnemy[i].rot.y = 0.0f;
 				}
-
-
-				// プレイヤーの方向にエネミーが回転する（向く処理）
-
-				// プレイヤーとエネミーのベクトルの計算処理
-				XMFLOAT3 relVec3 = { player[0].pos.x - g_AlphaEnemy[i].pos.x, 0.0f, player[0].pos.z - g_AlphaEnemy[i].pos.z };
-
-				// ベクトルとZアクシス間の角度の計算処理 (ラジアン)
-				float angle2 = atan2f(relVec3.z * -1, relVec3.x) * (360.0f / (XM_PI * 2.0f)); // ベクトルとZアクシスの角度を求める
-				angle2 += -90.0f;								// -90°オフセットする
-				float angleRadian = angle2 * XM_PI / 180.0f;	// 角度をラジアンに変換する
-
-				g_AlphaEnemy[i].rot.y = angleRadian;			// 角度の結果をエネミーのRotのyに入れ込む
-
 			}
 		}
 
@@ -266,6 +276,9 @@ void DrawAlphaEnemy(void)
 
 	// カリング無効
 	SetCullingMode(CULL_MODE_NONE);
+
+	// ワイヤーフレームスイッチ有効
+	SelectWireFrameMode();
 
 	for (int i = 0; i < MAX_ALPHA_ENEMY; i++)
 	{
@@ -293,11 +306,18 @@ void DrawAlphaEnemy(void)
 
 		// このエネミーは透明なのでDrawModelをコメントアウトしている
 		// モデル描画
-		//DrawModel(&g_AlphaEnemy[i].model);
+		if (g_AlphaEnemy_Alpha == TRUE)
+		{
+			DrawModel(&g_AlphaEnemy[i].model);
+		}
 	}
 
 	// カリング設定を戻す
 	SetCullingMode(CULL_MODE_BACK);
+
+	// ワイヤーフレーム設定を戻す
+	SetWireFrameMode(WIRE_FRAME_MODE_NONE);
+
 }
 
 

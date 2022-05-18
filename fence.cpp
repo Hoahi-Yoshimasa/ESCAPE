@@ -187,6 +187,9 @@ void DrawFence(void)
 	// カリング有効
 	SetCullingMode(CULL_MODE_BACK);
 
+	// ワイヤーフレームスイッチ有効
+	SelectWireFrameMode();
+
 	for (int i = 0; i < MAX_FENCE; i++)
 	{
 		if (g_Fence[i].use == FALSE) continue;
@@ -218,6 +221,10 @@ void DrawFence(void)
 
 	// カリング設定を戻す
 	SetCullingMode(CULL_MODE_BACK);
+
+	// ワイヤーフレーム設定を戻す
+	SetWireFrameMode(WIRE_FRAME_MODE_NONE);
+
 }
 
 

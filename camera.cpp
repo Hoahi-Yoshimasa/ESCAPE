@@ -9,6 +9,8 @@
 #include "camera.h"
 #include "debugproc.h"
 #include "player.h"
+#include "enemy.h"
+#include "alpha_enemy.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -19,6 +21,10 @@
 #define	POS_Y_CAM			(33.0f)			// カメラの初期位置(Y座標)
 #define	POS_Z_CAM			(-70.0f)		// カメラの初期位置(Z座標)
 
+// 上から視点
+#define	VIEW_POS_X_CAM		(0.0f)			// カメラの初期位置(X座標)
+#define	VIEW_POS_Y_CAM		(1500.0f)		// カメラの初期位置(Y座標)
+#define	VIEW_POS_Z_CAM		(-200.0f)		// カメラの初期位置(Z座標)
 
 #define	VIEW_ANGLE		(XMConvertToRadians(45.0f))						// ビュー平面の視野角
 #define	VIEW_ASPECT		((float)SCREEN_WIDTH / (float)SCREEN_HEIGHT)	// ビュー平面のアスペクト比	
@@ -31,6 +37,8 @@
 // グローバル変数
 //*****************************************************************************
 static CAMERA			g_Camera;		// カメラデータ
+
+static int g_CamMode;		// カメラモード切り替えスイッチ デバッグ用
 
 // カメラの視点
 static INTERPOLATION_DATA cam_move_tbl[] = {	// pos, rot, 注視点, frame
@@ -57,9 +65,14 @@ void InitCamera(void)
 {
 	// FPS 用
 	g_Camera.pos = { POS_X_CAM, POS_Y_CAM, POS_Z_CAM };
-	g_Camera.at = { 0.0f, 33.0f, 0.0f };
+
+	g_Camera.at = { 0.0f, POS_Y_CAM, 0.0f };  // 正常BK
+	//g_Camera.at = { 0.0f, 0.0f, 0.0f };
+
 	g_Camera.up = { 0.0f, 1.0f, 0.0f };
-	g_Camera.rot = { 0.0f, XM_PI, 0.0f };
+
+	g_Camera.rot = { 0.0f, XM_PI, 0.0f }; // 正常BK
+	//g_Camera.rot = { XM_PI, XM_PI, 0.0f };
 
 
 	// チュートリアルの場合の設定
@@ -89,6 +102,7 @@ void InitCamera(void)
 	g_Camera.tbl_adr = cam_move_tbl;		// 再生するアニメデータの先頭アドレスをセット
 	g_Camera.tbl_size = sizeof(cam_move_tbl) / sizeof(INTERPOLATION_DATA);	// 再生するアニメデータのレコード数をセット
 
+	g_CamMode = 0;							// 初期化
 }
 
 
@@ -107,6 +121,8 @@ void UninitCamera(void)
 void UpdateCamera(void)
 {
 	PLAYER *player = GetPlayer();
+	ENEMY *enemy = GetEnemy();
+	ALPHA_ENEMY *alphaEnemy = GetAlphaEnemy();
 
 
 	// タイトル画面ではカメラの線形補間を行う
@@ -146,9 +162,7 @@ void UpdateCamera(void)
 			XMVECTOR at = at1 - at0;
 			XMStoreFloat3(&g_Camera.at, at0 + at * time);
 		}
-
 	}
-
 
 
 	if (GetMode() == MODE_GAME || GetMode() == MODE_TUTORIAL)
@@ -156,53 +170,76 @@ void UpdateCamera(void)
 		// プレイヤーが生きている時のみ操作可能
 		if (player[0].use == TRUE)
 		{
-			// FPS用
-			if (GetKeyboardPress(DIK_LEFT) || IsButtonPressed(0, BUTTON_A) || IsButtonPressed(0, BUTTON_Y))
-			{// 注視点旋回「左」
-				g_Camera.rot.y -= VALUE_ROTATE_CAMERA;
-				if (g_Camera.rot.y < -XM_PI)
-				{
-					g_Camera.rot.y += XM_PI * 2.0f;
-				}
-				g_Camera.at.x = g_Camera.pos.x + sinf(g_Camera.rot.y) * g_Camera.len;
-				g_Camera.at.z = g_Camera.pos.z + cosf(g_Camera.rot.y) * g_Camera.len;
-			}
 
-			if (GetKeyboardPress(DIK_RIGHT) || IsButtonPressed(0, BUTTON_C) || IsButtonPressed(0, BUTTON_Z))
-			{// 注視点旋回「右」
-				g_Camera.rot.y += VALUE_ROTATE_CAMERA;
-				if (g_Camera.rot.y > XM_PI)
-				{
-					g_Camera.rot.y -= XM_PI * 2.0f;
-				}
+#ifdef _DEBUG
+			// デバッグ用エネミー移動スイッチ
+			g_CamMode = g_CamMode % CAMERA_MODE_MAX;
 
-				g_Camera.at.x = g_Camera.pos.x + sinf(g_Camera.rot.y) * g_Camera.len;
-				g_Camera.at.z = g_Camera.pos.z + cosf(g_Camera.rot.y) * g_Camera.len;
-			}
-
-			if (GetKeyboardPress(DIK_UP) || IsButtonPressed(0, BUTTON_X))
-			{// 注視点移動「上」
-				g_Camera.at.y += VALUE_MOVE_CAMERA;
-			}
-
-			if (GetKeyboardPress(DIK_DOWN) || IsButtonPressed(0, BUTTON_B))
-			{// 注視点移動「下」
-				g_Camera.at.y -= VALUE_MOVE_CAMERA;
-			}
-
-			// カメラが上限値以上向かないようにする処理
-			if (g_Camera.at.y < PAN_DOWN_LIMIT)
+			if (GetKeyboardTrigger(DIK_5))
 			{
-				g_Camera.at.y = PAN_DOWN_LIMIT;
+				g_CamMode++;
+
+				if (g_CamMode == PLAYER_CAM_MODE)
+				{
+					g_Camera.at.y = POS_Y_CAM;			// 注視点を目線の高さにリセットさせる
+				}
 			}
-			if (g_Camera.at.y > PAN_UP_LIMIT)
+
+			PrintDebugProc("カメラモード:%d\n", g_CamMode);
+#endif
+
+
+			if (g_CamMode == PLAYER_CAM_MODE)	// 通常モードのカメラ
 			{
-				g_Camera.at.y = PAN_UP_LIMIT;
+				// FPS用
+				SetCameraAT(player[0].pos);
+				g_Camera.rot.y = player[0].rot.y;	// プレイヤーの回転軸をカメラに合わせる
+
+				if (GetKeyboardPress(DIK_UP) || IsButtonPressed(0, BUTTON_X))
+				{// 注視点移動「上」
+					g_Camera.at.y += VALUE_MOVE_CAMERA;
+				}
+
+				if (GetKeyboardPress(DIK_DOWN) || IsButtonPressed(0, BUTTON_B))
+				{// 注視点移動「下」
+					g_Camera.at.y -= VALUE_MOVE_CAMERA;
+				}
+
+				// カメラが上限値以上向かないようにする処理
+				if (g_Camera.at.y < PAN_DOWN_LIMIT)
+				{
+					g_Camera.at.y = PAN_DOWN_LIMIT;
+				}
+				if (g_Camera.at.y > PAN_UP_LIMIT)
+				{
+					g_Camera.at.y = PAN_UP_LIMIT;
+				}
+			}
+
+			if (g_CamMode == VIEW_CAM_MODE)				// ビューモードのカメラ
+			{
+				g_Camera.pos = { VIEW_POS_X_CAM,VIEW_POS_Y_CAM,VIEW_POS_Z_CAM };
+				g_Camera.at = { 0.0f, 0.0f, 0.0f };
+				g_Camera.rot = { 0.0f, 0.0f, 0.0f };
+			}
+
+			if (g_CamMode == ENEMY_CAM_MODE)			// 見える死神の目線カメラ
+			{
+				SetCameraAT(enemy[0].pos);
+				g_Camera.rot.y = enemy[0].rot.y;		// 死神の回転軸をカメラに合わせる
+			}
+
+			if (g_CamMode == ALPHA_ENEMY_CAM_MODE)		// 見えない死神の目線カメラ
+			{
+				SetCameraAT(alphaEnemy[0].pos);
+				g_Camera.rot.y = alphaEnemy[0].rot.y;	// 死神の回転軸をカメラに合わせる
 			}
 
 		}
 
-		PrintDebugProc("Camera:AT.y %f\n", g_Camera.at.y);
+		PrintDebugProc("Camera:rot.x %f y:%f z:%f\n", g_Camera.rot.x, g_Camera.rot.y, g_Camera.rot.z);
+
+		PrintDebugProc("Camera:AT.x %f y:%f z:%f\n", g_Camera.at.x, g_Camera.at.y, g_Camera.at.z);
 		PrintDebugProc("Camera:pos.x %f y;%f z;%f\n", g_Camera.pos.x, g_Camera.pos.y, g_Camera.pos.z);
 
 #ifdef _DEBUG	// デバッグ情報を表示する
@@ -257,6 +294,10 @@ void SetCameraAT(XMFLOAT3 pos)
 		// FPS用カメラ設定
 		g_Camera.pos = pos;					// プレイヤーのPOSからカメラのPOSを合わせる
 		g_Camera.pos.y = POS_Y_CAM;			// 目線の高さにオフセットする
+		if (g_CamMode != PLAYER_CAM_MODE)	// プレイヤーモード以外なら注視点を固定させる
+		{
+			g_Camera.at.y = POS_Y_CAM;		// 注視点も目線の高さに合わせる
+		}
 		//g_Camera.pos.z += POS_OFFSET_Z_CAM; // 少しカメラを後ろに下げている(フェンスと衝突した時ポリゴンの向こうが見えてしまうのを防ぐため)
 
 		// カメラの視点をカメラのY軸回転に対応させている

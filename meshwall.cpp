@@ -296,6 +296,9 @@ void DrawMeshWall(void)
 		// ワールドマトリックスの初期化
 		mtxWorld = XMMatrixIdentity();
 
+		// ワイヤーフレームスイッチ有効
+		SelectWireFrameMode();
+
 		// 回転を反映
 		mtxRot = XMMatrixRotationRollPitchYaw(pMesh->rot.x, pMesh->rot.y, pMesh->rot.z);
 		mtxWorld = XMMatrixMultiply(mtxWorld, mtxRot);
@@ -310,6 +313,10 @@ void DrawMeshWall(void)
 
 		// ポリゴンの描画
 		GetDeviceContext()->DrawIndexed(pMesh->nNumVertexIndex, 0, 0);
+
+		// ワイヤーフレーム設定を戻す
+		SetWireFrameMode(WIRE_FRAME_MODE_NONE);
+
 	}
 
 	// ライティングオン

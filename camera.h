@@ -37,6 +37,15 @@ struct CAMERA
 
 };
 
+enum CAMERA_MODE
+{
+	PLAYER_CAM_MODE,			// プレイヤー視点モード
+	VIEW_CAM_MODE,				// 上空からの見下ろしモード
+	ENEMY_CAM_MODE,				// 死神視点モード
+	ALPHA_ENEMY_CAM_MODE,		// 透明死神視点モード
+
+	CAMERA_MODE_MAX				// カメラのモードMAX数
+};
 
 //*****************************************************************************
 // プロトタイプ宣言

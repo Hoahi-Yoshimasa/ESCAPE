@@ -103,6 +103,9 @@ void DrawGate(void)
 	// カリング無効
 	SetCullingMode(CULL_MODE_NONE);
 
+	// ワイヤーフレームスイッチ有効
+	SelectWireFrameMode();
+
 	for (int i = 0; i < MAX_GATE; i++)
 	{
 		if (g_Gate[i].use == FALSE) continue;
@@ -133,6 +136,10 @@ void DrawGate(void)
 
 	// カリング設定を戻す
 	SetCullingMode(CULL_MODE_BACK);
+
+	// ワイヤーフレーム設定を戻す
+	SetWireFrameMode(WIRE_FRAME_MODE_NONE);
+
 }
 
 

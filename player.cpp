@@ -13,7 +13,6 @@
 #include "shadow.h"
 #include "light.h"
 #include "meshfield.h"
-#include "camera.h"
 #include "sound.h"
 #include "ui.h"
 #include "alpha_enemy.h"
@@ -65,22 +64,21 @@ HRESULT InitPlayer(void)
 {
 	LoadModel(MODEL_PLAYER, &g_Player.model);
 	g_Player.load = TRUE;
-	g_Walksound_count = 0;	// 足音を均等な間隔で鳴らす用のカウント変数
-	g_Heartbeat_count = DEFAULT_HEARTBEAT;	// 心拍音のカウント変数 初期化
+	g_Walksound_count = 0;									// 足音を均等な間隔で鳴らす用のカウント変数
+	g_Heartbeat_count = DEFAULT_HEARTBEAT;					// 心拍音のカウント変数 初期化
 
-	g_Player.pos = { -400.0f, PLAYER_OFFSET_Y, -420.0f };
+	g_Player.pos = { -375.0f, PLAYER_OFFSET_Y, -375.0f };
 	g_Player.old_pos = { 0.0f, 0.0f, 0.0f };				// 1フレーム前の座標を保存しておく用
-
 	g_Player.rot = { 0.0f, XM_PI, 0.0f };
 	g_Player.scl = { 1.0f, 1.0f, 1.0f };
 
-	g_Player.stamina = PLAYER_STAMINA;					// スタミナの初期化
-	g_Player.staminaPercent = 1.0f;						// HPを100％で初期化
-	g_StaminaRecovery_count = 0;	// スタミナ回復時間調整
+	g_Player.stamina = PLAYER_STAMINA;						// スタミナの初期化
+	g_Player.staminaPercent = 1.0f;							// HPを100％で初期化
+	g_StaminaRecovery_count = 0;							// スタミナ回復時間調整
 
-	g_Player.spd = 0.0f;			// 移動スピードクリア
-	g_Player.size = PLAYER_SIZE;	// 当たり判定の大きさ
-	g_Player.keyNumber = 0;			// 鍵の取得数 0で初期化する
+	g_Player.spd = 0.0f;									// 移動スピードクリア
+	g_Player.size = PLAYER_SIZE;							// 当たり判定の大きさ
+	g_Player.keyNumber = 0;									// 鍵の取得数 0で初期化する
 
 	g_Player.use = TRUE;
 
@@ -240,6 +238,9 @@ void UpdatePlayer(void)
 				g_Player.rot.y += XM_PI * 2.0f;
 			}
 		}
+
+
+		PrintDebugProc("Player.rot.y:%f\n", g_Player.rot.y);
 
 
 		// チュートリアルのテキストを表示させる処理
@@ -423,6 +424,9 @@ void DrawPlayer(void)
 	// カリング有効
 	SetCullingMode(CULL_MODE_BACK);
 
+	// ワイヤーフレームスイッチ有効
+	SelectWireFrameMode();
+
 	XMMATRIX mtxScl, mtxRot, mtxTranslate, mtxWorld;
 
 	// ワールドマトリックスの初期化
@@ -496,6 +500,10 @@ void DrawPlayer(void)
 
 	// カリング設定を戻す
 	SetCullingMode(CULL_MODE_BACK);
+
+	// ワイヤーフレーム設定を戻す
+	SetWireFrameMode(WIRE_FRAME_MODE_NONE);
+
 }
 
 

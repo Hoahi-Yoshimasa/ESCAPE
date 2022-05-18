@@ -109,6 +109,9 @@ void DrawHut(void)
 	// カリング有効
 	SetCullingMode(CULL_MODE_BACK);
 
+	// ワイヤーフレームスイッチ有効
+	SelectWireFrameMode();
+
 	for (int i = 0; i < MAX_HUT; i++)
 	{
 		if (g_Hut[i].use == FALSE) continue;
@@ -140,6 +143,10 @@ void DrawHut(void)
 
 	// カリング設定を戻す
 	SetCullingMode(CULL_MODE_BACK);
+
+	// ワイヤーフレーム設定を戻す
+	SetWireFrameMode(WIRE_FRAME_MODE_NONE);
+
 }
 
 

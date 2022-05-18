@@ -21,8 +21,8 @@
 //*****************************************************************************
 #define TEXTURE_MAX					(1)				// テクスチャの数
 
-#define	KEYICON_WIDTH					(10.0f)			// 頂点サイズ
-#define	KEYICON_HEIGHT					(10.0f)			// 頂点サイズ
+#define	KEYICON_WIDTH				(10.0f)			// 頂点サイズ
+#define	KEYICON_HEIGHT				(10.0f)			// 頂点サイズ
 
 #define	MAX_KEYICON					(3)				// アイコン最大数
 

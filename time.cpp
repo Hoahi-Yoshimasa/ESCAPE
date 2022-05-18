@@ -9,6 +9,7 @@
 #include "time.h"
 #include "sprite.h"
 #include "fade.h"
+#include "input.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -44,6 +45,8 @@ static int						g_Time;						// タイム
 static BOOL						g_Load = FALSE;
 
 static int						count;						// タイムを減らすためのカウント変数
+static BOOL						g_Timer_Switch;				// 時間を止めるスイッチ デバッグ用
+
 //=============================================================================
 // 初期化処理
 //=============================================================================
@@ -84,6 +87,8 @@ HRESULT InitTime(void)
 	g_Time = TIME_MAX;	// タイムの初期化
 	count = 60;			// 60FPSなので60で初期化
 
+	g_Timer_Switch = FALSE;
+
 	g_Load = TRUE;
 	return S_OK;
 }
@@ -120,14 +125,29 @@ void UpdateTime(void)
 {
 	if (GetMode() == MODE_GAME)
 	{
-		// タイムカウントを減らす処理
-		if (count <= 0)
+
+#ifdef _DEBUG
+
+		// タイマースイッチ デバッグ用
+		g_Timer_Switch = g_Timer_Switch % 2;
+
+		if (GetKeyboardTrigger(DIK_4))
 		{
-			AddTime(-1);	// タイムを１減らす
-			count = 60;		// 60FPSなので60を入れる
+			g_Timer_Switch++;
+		}
+#endif
+
+		if (g_Timer_Switch == FALSE)
+		{
+			// タイムカウントを減らす処理
+			if (count <= 0)
+			{
+				AddTime(-1);	// タイムを１減らす
+				count = 60;		// 60FPSなので60を入れる
+			}
 		}
 
-		count--;			// 毎フレームカウント変数を引く
+		count--;				// 毎フレームカウント変数を引く
 
 
 		// 制限時間が0になったら

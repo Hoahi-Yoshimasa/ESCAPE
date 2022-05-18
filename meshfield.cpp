@@ -426,6 +426,9 @@ void DrawMeshField(void)
 
 	// XMMATRIX mtxRot, mtxTranslate, mtxWorld;
 
+	// ワイヤーフレームスイッチ有効
+	SelectWireFrameMode();
+
 	// ワールドマトリックスの初期化
 	mtxWorld = XMMatrixIdentity();
 
@@ -440,9 +443,12 @@ void DrawMeshField(void)
 	// ワールドマトリックスの設定
 	SetWorldMatrix(&mtxWorld);
 
-
 	// ポリゴンの描画
 	GetDeviceContext()->DrawIndexed(g_nNumVertexIndexField, 0, 0);
+
+	// ワイヤーフレーム設定を戻す
+	SetWireFrameMode(WIRE_FRAME_MODE_NONE);
+
 }
 
 //                           ぶつかったポリゴン場所 ぶつかったポリゴンの向き

@@ -7,6 +7,7 @@
 #include "main.h"
 #include "renderer.h"
 #include "shadow.h"
+#include "input.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -45,13 +46,15 @@ static ID3D11ShaderResourceView		*g_Texture[TEXTURE_MAX] = { NULL };	// テクスチ
 static SHADOW						g_aShadow[MAX_SHADOW];	// 影ワーク
 static int							g_TexNo;				// テクスチャ番号
 
+static BOOL							g_Fog_Switch;				// フォグスイッチ デバッグ用
+
 static char* g_TextureName[] = {
 	"data/TEXTURE/shadow000.jpg",
 };
 
 static BOOL							g_Load = FALSE;
 
-
+//static BOOL
 //=============================================================================
 // 初期化処理
 //=============================================================================
@@ -82,6 +85,8 @@ HRESULT InitShadow(void)
 		g_aShadow[nCntShadow].scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
 		g_aShadow[nCntShadow].bUse = FALSE;
 	}
+
+	g_Fog_Switch = TRUE;	// 初期状態ではフォグON
 
 	g_Load = TRUE;
 	return S_OK;
@@ -119,7 +124,15 @@ void UninitShadow(void)
 //=============================================================================
 void UpdateShadow(void)
 {
+#ifdef _DEBUG
+	// フォグ切り替えスイッチ デバッグ用
+	g_Fog_Switch = g_Fog_Switch % 2;
 
+	if (GetKeyboardTrigger(DIK_8))
+	{
+		g_Fog_Switch++;
+	}
+#endif
 }
 
 //=============================================================================
@@ -193,8 +206,8 @@ void DrawShadow(void)
 	}
 	else
 	{
-		// フォグ有効
-		SetFogEnable(TRUE);
+		// フォグ
+		SetFogEnable(g_Fog_Switch);
 	}
 }
 

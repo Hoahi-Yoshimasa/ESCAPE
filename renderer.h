@@ -45,7 +45,13 @@ enum CULL_MODE
 	CULL_MODE_NUM
 };
 
+enum WireFrameMode
+{
+	WIRE_FRAME_MODE_NONE,		// ワイヤーフレームモードOFF
+	WIRE_FRAME_MODE_ON,			// ワイヤーフレームモードON
 
+	WIRE_FRAME_NUM
+};
 //*********************************************************
 // 構造体
 //*********************************************************
@@ -131,3 +137,6 @@ void DebugTextOut(char* text, int x, int y);
 void SetFuchi(int flag);
 void SetShaderCamera(XMFLOAT3 pos);
 
+void SetWireFrameMode(WireFrameMode wfm);
+
+void SelectWireFrameMode(void);

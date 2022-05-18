@@ -53,6 +53,8 @@ static float anime_speed;		// エネミーのアニメーション速度用変数
 
 static int g_NextPoint;			// 経路探索用 次のポイントを入れる変数
 
+static BOOL g_Enemy_Move;		// 見える死神移動スイッチ デバッグ用
+
 // リザルト画面用の線形補間データ
 static INTERPOLATION_DATA move_tbl[] = {	// pos, rot, scl, frame
 
@@ -93,7 +95,7 @@ HRESULT InitEnemy(void)
 		LoadModel(MODEL_ENEMY, &g_Enemy[i].model);
 		g_Enemy[i].load = TRUE;
 
-		g_Enemy[i].pos = XMFLOAT3(-375.0f, ENEMY_OFFSET_Y, 425.0f);
+		g_Enemy[i].pos = XMFLOAT3(25.0f, ENEMY_OFFSET_Y, 425.0f);
 		g_Enemy[i].rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		g_Enemy[i].scl = XMFLOAT3(0.3f, 0.3f, 0.3f);
 
@@ -144,6 +146,8 @@ HRESULT InitEnemy(void)
 		g_Enemy[0].tbl_adr = move_tbl2;		// 再生するアニメデータの先頭アドレスをセット
 		g_Enemy[0].tbl_size = sizeof(move_tbl2) / sizeof(INTERPOLATION_DATA);	// 再生するアニメデータのレコード数をセット
 	}
+
+	g_Enemy_Move = FALSE;
 
 	g_Angle = 0;
 	g_NextPoint = 0;			// 経路探索用 次のポイントを入れる変数 0で初期化
@@ -290,72 +294,83 @@ void UpdateEnemy(void)
 					g_Enemy[i].rot.y = 0.0f;
 				}
 
+#ifdef _DEBUG
+				// デバッグ用エネミー移動スイッチ
+				g_Enemy_Move = g_Enemy_Move % 2;
+
+				if (GetKeyboardTrigger(DIK_1))
+				{
+					g_Enemy_Move++;
+				}
+				PrintDebugProc("エネミーMOVE:%d\n", g_Enemy_Move);
+#endif
 
 				int *P_chip_num = GetPlayer_chip_num();			// 現在プレイヤーがメッシュフィールドの何処(何番目)にいるかをGetする
 				int *E_chip_num = GetEnemy_chip_num();
 
-
-				if (g_Enemy[i].chase_mode == TRUE)				// チェイスモードならプレイヤーを直接追いかける
+				if (g_Enemy_Move == FALSE)							// エネミー移動スイッチONなら
 				{
+					if (g_Enemy[i].chase_mode == TRUE)				// チェイスモードならプレイヤーを直接追いかける
+					{
+						// プレイヤーの方向にエネミーが回転する（向く処理）
 
-					// プレイヤーの方向にエネミーが回転する（向く処理）
+						// プレイヤーとエネミーのベクトルの計算処理
+						XMFLOAT3 relVec3 = { player[0].pos.x - g_Enemy[i].pos.x, 0.0f, player[0].pos.z - g_Enemy[i].pos.z };
 
-					// プレイヤーとエネミーのベクトルの計算処理
-					XMFLOAT3 relVec3 = { player[0].pos.x - g_Enemy[i].pos.x, 0.0f, player[0].pos.z - g_Enemy[i].pos.z };
+						// ベクトルとZアクシス間の角度の計算処理 (ラジアン)
 
-					// ベクトルとZアクシス間の角度の計算処理 (ラジアン)
-
-					float angle2 = atan2f(relVec3.z * -1, relVec3.x) * (360.0f / (XM_PI * 2.0f));	// ベクトルとZアクシスの角度を求める
-					angle2 += -90.0f;																// -90°オフセットする
-					float angleRadian = angle2 * XM_PI / 180.0f;									// 角度をラジアンに変換する
-					g_Enemy[i].rot.y = angleRadian;													// 角度の結果をエネミーのRotのyに入れ込む
-
-
-					// プレイヤーのところに移動する処理
-					XMFLOAT3 difference;		// 差分計算用
-					XMVECTOR P_pos = XMLoadFloat3(&player[0].pos);									// 一度計算用で変換する
-					XMVECTOR E_pos = XMLoadFloat3(&g_Enemy[i].pos);
-					XMVECTOR difference1 = XMLoadFloat3(&difference);
-
-					difference1 = P_pos - E_pos;													// 自分とプレイヤーとの差分を求めている
-					XMStoreFloat3(&difference, difference1);										// 結果を一度保存する(戻す)
-					float angle1 = atan2f(difference.z, difference.x);								// その差分を使って角度を求めている
-
-					g_Enemy[i].pos.x += cosf(angle1) * g_Enemy[i].spd;								// angleの方向へ移動
-					g_Enemy[i].pos.z += sinf(angle1) * g_Enemy[i].spd;								// angleの方向へ移動
-				}
-				else																				// チェイスモード以外の場合 (経路探索をする)
-				{
-					// 最短経路探索処理
-					COORD_POINT *coord_point = GetCoordPoint();										// 各メッシュフィールドの中心座標座標を取得
-					g_NextPoint = ShortestPath(*E_chip_num, *P_chip_num);							// 最短経路 次の場所を返す
+						float angle2 = atan2f(relVec3.z * -1, relVec3.x) * (360.0f / (XM_PI * 2.0f));	// ベクトルとZアクシスの角度を求める
+						angle2 += -90.0f;																// -90°オフセットする
+						float angleRadian = angle2 * XM_PI / 180.0f;									// 角度をラジアンに変換する
+						g_Enemy[i].rot.y = angleRadian;													// 角度の結果をエネミーのRotのyに入れ込む
 
 
-					// NextPos方向にエネミーが回転する（向く処理）
+						// プレイヤーのところに移動する処理
+						XMFLOAT3 difference;		// 差分計算用
+						XMVECTOR P_pos = XMLoadFloat3(&player[0].pos);									// 一度計算用で変換する
+						XMVECTOR E_pos = XMLoadFloat3(&g_Enemy[i].pos);
+						XMVECTOR difference1 = XMLoadFloat3(&difference);
 
-					// NextPosとエネミーのベクトルの計算処理
-					XMFLOAT3 relVec3 = { coord_point[g_NextPoint].pos.x - coord_point[*E_chip_num].pos.x, 0.0f, coord_point[g_NextPoint].pos.z - coord_point[*E_chip_num].pos.z };
+						difference1 = P_pos - E_pos;													// 自分とプレイヤーとの差分を求めている
+						XMStoreFloat3(&difference, difference1);										// 結果を一度保存する(戻す)
+						float angle1 = atan2f(difference.z, difference.x);								// その差分を使って角度を求めている
 
-					// ベクトルとZアクシス間の角度の計算処理 (ラジアン)
-					float angle2 = atan2f(relVec3.z * -1, relVec3.x) * (360.0f / (XM_PI * 2.0f));	// ベクトルとZアクシスの角度を求める
-					angle2 += -90.0f;																// -90°オフセットする
-					float angleRadian = angle2 * XM_PI / 180.0f;									// 角度をラジアンに変換する
-					g_Enemy[i].rot.y = angleRadian;													// 角度の結果をエネミーのRotのyに入れ込む
+						g_Enemy[i].pos.x += cosf(angle1) * g_Enemy[i].spd;								// angleの方向へ移動
+						g_Enemy[i].pos.z += sinf(angle1) * g_Enemy[i].spd;								// angleの方向へ移動
+					}
+					else																				// チェイスモード以外の場合 (経路探索をする)
+					{
+						// 最短経路探索処理
+						COORD_POINT *coord_point = GetCoordPoint();										// 各メッシュフィールドの中心座標座標を取得
+						g_NextPoint = ShortestPath(*E_chip_num, *P_chip_num);							// 最短経路 次の場所を返す
 
 
-					// NextPointに移動する処理
-					XMFLOAT3 difference;															// 差分計算用
-					XMVECTOR Next_pos = XMLoadFloat3(&coord_point[g_NextPoint].pos);				// 一度計算用で変換する
-					XMVECTOR E_pos = XMLoadFloat3(&g_Enemy[i].pos);
-					XMVECTOR difference1 = XMLoadFloat3(&difference);
+						// NextPos方向にエネミーが回転する（向く処理）
 
-					difference1 = Next_pos - E_pos;													// エネミーとNextポイントとの差分を求めている
-					XMStoreFloat3(&difference, difference1);										// 結果を一度保存する(戻す)
+						// NextPosとエネミーのベクトルの計算処理
+						XMFLOAT3 relVec3 = { coord_point[g_NextPoint].pos.x - coord_point[*E_chip_num].pos.x, 0.0f, coord_point[g_NextPoint].pos.z - coord_point[*E_chip_num].pos.z };
 
-					float angle1 = atan2f(difference.z, difference.x);								// その差分を使って角度を求めている
+						// ベクトルとZアクシス間の角度の計算処理 (ラジアン)
+						float angle2 = atan2f(relVec3.z * -1, relVec3.x) * (360.0f / (XM_PI * 2.0f));	// ベクトルとZアクシスの角度を求める
+						angle2 += -90.0f;																// -90°オフセットする
+						float angleRadian = angle2 * XM_PI / 180.0f;									// 角度をラジアンに変換する
+						g_Enemy[i].rot.y = angleRadian;													// 角度の結果をエネミーのRotのyに入れ込む
 
-					g_Enemy[i].pos.x += cosf(angle1) * g_Enemy[i].spd;								// angleの方向へ移動
-					g_Enemy[i].pos.z += sinf(angle1) * g_Enemy[i].spd;								// angleの方向へ移動
+
+						// NextPointに移動する処理
+						XMFLOAT3 difference;															// 差分計算用
+						XMVECTOR Next_pos = XMLoadFloat3(&coord_point[g_NextPoint].pos);				// 一度計算用で変換する
+						XMVECTOR E_pos = XMLoadFloat3(&g_Enemy[i].pos);
+						XMVECTOR difference1 = XMLoadFloat3(&difference);
+
+						difference1 = Next_pos - E_pos;													// エネミーとNextポイントとの差分を求めている
+						XMStoreFloat3(&difference, difference1);										// 結果を一度保存する(戻す)
+
+						float angle1 = atan2f(difference.z, difference.x);								// その差分を使って角度を求めている
+
+						g_Enemy[i].pos.x += cosf(angle1) * g_Enemy[i].spd;								// angleの方向へ移動
+						g_Enemy[i].pos.z += sinf(angle1) * g_Enemy[i].spd;								// angleの方向へ移動
+					}
 				}
 			}
 
@@ -407,6 +422,9 @@ void DrawEnemy(void)
 	// カリング無効
 	SetCullingMode(CULL_MODE_NONE);
 
+	// ワイヤーフレームスイッチ有効
+	SelectWireFrameMode();
+
 	for (int i = 0; i < MAX_ENEMY; i++)
 	{
 		if (g_Enemy[i].use == FALSE) continue;
@@ -438,6 +456,10 @@ void DrawEnemy(void)
 
 	// カリング設定を戻す
 	SetCullingMode(CULL_MODE_BACK);
+
+	// ワイヤーフレーム設定を戻す
+	SetWireFrameMode(WIRE_FRAME_MODE_NONE);
+
 }
 
 
